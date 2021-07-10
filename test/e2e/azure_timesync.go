@@ -165,6 +165,10 @@ func AzureDaemonsetTimeSyncSpec(ctx context.Context, inputGetter func() AzureTim
 		return fmt.Errorf(msg)
 	}, sixty, five).Should(Succeed())
 
+	matchingLabels := client.MatchingLabels(map[string]string{
+		"app": "nsenter",
+	})
+
 	var podList corev1.PodList
 	err = kubeclient.List(ctx, &podList, client.MatchingLabels(map[string]string{"app": "nsenter"}))
 	Expect(err).NotTo(HaveOccurred(), "failed to list pods for daemonset timesync check")
