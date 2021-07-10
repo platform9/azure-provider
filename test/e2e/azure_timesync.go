@@ -173,7 +173,7 @@ func AzureDaemonsetTimeSyncSpec(ctx context.Context, inputGetter func() AzureTim
 		var nodes corev1.PodList
 		if err := kubeclient.List(ctx, &nodes); err != nil {
 			Logf("failed to list nodes for daemonset timesync check: %v", err)
-			return
+			return err
 		}
 
 		if len(nodes.Items) < 1 {
