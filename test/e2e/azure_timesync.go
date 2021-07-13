@@ -166,7 +166,8 @@ func AzureDaemonsetTimeSyncSpec(ctx context.Context, inputGetter func() AzureTim
 	}, sixty, five).Should(Succeed())
 
 	matchingLabels := client.MatchingLabels(map[string]string{
-		"app": "nsenter",
+		"app":              "nsenter",
+		"kubernetes.io/os": "linux",
 	})
 
 	Eventually(func() error {
