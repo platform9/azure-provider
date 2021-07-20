@@ -165,6 +165,42 @@ func AzureDaemonsetTimeSyncSpec(ctx context.Context, inputGetter func() AzureTim
 		return fmt.Errorf(msg)
 	}, sixty, five).Should(Succeed())
 
+	matchingLabels := client.MatchingLabels(map[string]string{
+		"app": "nsenter",
+	})
+
+	Eventually(func() error {
+		var nodes corev1.NodeList
+		if err := kubeclient.List(ctx, &nodes); err != nil {
+			Logf("failed to list nodes for daemonset timesync check: %v", err)
+			return err
+		}
+
+		if len(nodes.Items) < 1 {
+			msg := "expected to find >= 1 node for timesync check"
+			Logf(msg)
+			return fmt.Errorf(msg)
+		}
+		desired := int32(len(nodes.Items))
+
+		var ds appsv1.DaemonSet
+		if err := kubeclient.Get(ctx, types.NamespacedName{"default", "nsenter"}, &ds); err != nil {
+			Logf("failed to get nsenter ds: %s", err)
+			return err
+		}
+		ready := ds.Status.NumberReady
+		available := ds.Status.NumberAvailable
+		allReadyAndAvailable := desired == ready && desired == available
+		generationOk := ds.ObjectMeta.Generation == ds.Status.ObservedGeneration
+
+		msg := fmt.Sprintf("want %d instances, found %d ready and %d available. generation: %d, observedGeneration: %d", desired, ready, available, ds.ObjectMeta.Generation, ds.Status.ObservedGeneration)
+		Logf(msg)
+		if allReadyAndAvailable && generationOk {
+			return nil
+		}
+		return fmt.Errorf(msg)
+	}).Should(Succeed())
+
 	var podList corev1.PodList
 	err = kubeclient.List(ctx, &podList, client.MatchingLabels(map[string]string{"app": "nsenter"}))
 	Expect(err).NotTo(HaveOccurred(), "failed to list pods for daemonset timesync check")
